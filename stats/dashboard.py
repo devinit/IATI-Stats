@@ -157,13 +157,19 @@ def valid_value(value_element):
     return schema.validate(value_element)
 
 
-def valid_coords(x):
-    coords = x.split(' ')
-    if len(coords) != 2:
-        return False
+def valid_coords(el):
     try:
-        x = decimal.Decimal(coords[0])
-        y = decimal.Decimal(coords[1])
+        if el.tag == 'coordinates':
+            y = decimal.Decimal(el.attrib.get('latitude'))
+            x = decimal.Decimal(el.attrib.get('longitude'))
+        else:
+            if not el.text:
+                return False
+            coords = el.text.split(' ')
+            if len(coords) != 2:
+                return False
+            y = decimal.Decimal(coords[0])
+            x = decimal.Decimal(coords[1])
         if x == 0 and y ==0:
             return False
         else:
@@ -561,8 +567,8 @@ class ActivityStats(CommonSharedElements):
                 'transaction_traceability': all_and_not_empty(x.xpath('provider-org/@provider-activity-id') for x in self.element.xpath('transaction[transaction-type/@code="{}"]'.format(self._incoming_funds_code()))),
                 'budget': self.element.findall('budget'),
                 'contact-info': self.element.findall('contact-info/email'),
-                'location': self.element.xpath('location/point/pos|location/name|location/description|location/location-administrative'),
-                'location_point_pos': self.element.xpath('location/point/pos'),
+                'location': self.element.xpath('location/point/pos|location/coordinates|location/name|location/description|location/location-administrative'),
+                'location_point_pos': self.element.xpath('location/point/pos|location/coordinates'),
                 'sector_dac': self.element.xpath('sector[@vocabulary="{}" or @vocabulary="{}" or not(@vocabulary)]'.format(self._dac_5_code(), self._dac_3_code())),
                 'capital-spend': self.element.xpath('capital-spend/@percentage'),
                 'document-link': self.element.findall('document-link'),
@@ -637,7 +643,7 @@ class ActivityStats(CommonSharedElements):
                         valid_value(budget.find('value'))
                         for budget in bools['budget'])),
                 'location_point_pos': all_and_not_empty(
-                    valid_coords(x.text) for x in bools['location_point_pos']),
+                    valid_coords(x) for x in bools['location_point_pos']),
                 'sector_dac': (
                     bools['sector_dac'] and
                     all(x.attrib.get('code') in CODELISTS[self._major_version()]['Sector'] for x in self.element.xpath('sector[@vocabulary="{}" or not(@vocabulary)]'.format(self._dac_5_code()))) and

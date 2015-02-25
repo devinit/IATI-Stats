@@ -334,6 +334,9 @@ def test_comprehensiveness_other_passes(major_version):
                     <transaction-type code="D"/>
                     <value value-date="2014-01-01"/>
                 </transaction>
+                <location>
+                    <coordinates />
+                </location>
             </iati-activity>
         </iati-activities>
     ''' if major_version == '1' else '''
@@ -367,8 +370,8 @@ def test_comprehensiveness_other_passes(major_version):
         'transaction_traceability': 0,
         'budget': 0,
         'contact-info': 0,
-        'location': 0,
-        'location_point_pos': 0,
+        'location': 1 if major_version == '1' else 0,
+        'location_point_pos': 1 if major_version == '1' else 0,
         'sector_dac': 0,
         'capital-spend': 0,
         'document-link': 0,
@@ -805,6 +808,29 @@ def test_valid_location(major_version):
         </iati-activity>
     ''')
     assert activity_stats.comprehensiveness_with_validation()['location_point_pos'] == 0
+
+    if major_version == '1':
+        activity_stats = MockActivityStats(major_version)
+        activity_stats.today = datetime.date(9990, 6, 1)
+        activity_stats.element = etree.fromstring('''
+            <iati-activity>
+                <location>
+                    <coordinates latitude="" longitude="" />
+                </location>
+            </iati-activity>
+        ''')
+        assert activity_stats.comprehensiveness_with_validation()['location_point_pos'] == 0
+
+        activity_stats = MockActivityStats(major_version)
+        activity_stats.today = datetime.date(9990, 6, 1)
+        activity_stats.element = etree.fromstring('''
+            <iati-activity>
+                <location>
+                    <coordinates latitude="31.616944" longitude="65.716944" />
+                </location>
+            </iati-activity>
+        ''')
+        assert activity_stats.comprehensiveness_with_validation()['location_point_pos'] == 1
 
 
 @pytest.mark.parametrize('major_version', ['1', '2'])
