@@ -28,7 +28,7 @@ def call_stats(this_stats, args):
 def process_file((inputfile, output_dir, folder, xmlfile, args)):
     import importlib
     stats_module = importlib.import_module(args.stats_module)
-    
+
     if args.verbose_loop:
         try: os.makedirs(os.path.join(output_dir,'loop',folder))
         except OSError: pass
@@ -58,8 +58,33 @@ def process_file((inputfile, output_dir, folder, xmlfile, args)):
                 return call_stats(file_stats, args)
 
             def process_stats_element(ElementStats, tagname=None):
-                for element in root:
-                    if tagname and tagname != element.tag: continue
+                def is_humanitarian_activity(activity, version):
+                    """Checks to see whether the activity is humanitarian.
+
+                    This allows the Grand Bargain monitoring page to calculate stats on activities that are known to relate to humanitarian.
+
+                    Param:
+                        activity (lxml.etree._Element): A lxml representation of an <iati-activity> element.
+                        version (str): The version of the IATI Standard that is used to define the activity.
+                    """
+                    humanitarian_sectors_dac_5_digit = ['72010', '72040', '72050', '73010', '74010']
+                    humanitarian_sectors_dac_3_digit = ['720', '730', '740']
+
+                    # ensure we are dealing with an activity
+                    if element.tag != 'iati-activity':
+                        return False
+
+                    is_humanitarian_by_attrib = 1 if (version in ['2.02']) and ('humanitarian' in activity.attrib) and (activity.attrib['humanitarian'] in ['1', 'true']) else 0
+                    is_humanitarian_by_sector_5_digit = 1 if set(activity.xpath('sector[@vocabulary="1" or not(@vocabulary)]/@code')).intersection(humanitarian_sectors_dac_5_digit) else 0
+                    is_humanitarian_by_sector_3_digit = 1 if set(activity.xpath('sector[@vocabulary="2"]/@code')).intersection(humanitarian_sectors_dac_3_digit) else 0
+                    is_humanitarian_by_sector = is_humanitarian_by_sector_5_digit or is_humanitarian_by_sector_3_digit
+                    is_humanitarian = is_humanitarian_by_attrib or is_humanitarian_by_sector
+
+                    return bool(is_humanitarian)
+
+
+                version = root.attrib.get('version', '1.01')
+                for [element for el in root if is_humanitarian_activity(el, version)]:
                     element_stats = ElementStats()
                     element_stats.element = element
                     element_stats.strict = args.strict
