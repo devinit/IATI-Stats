@@ -71,7 +71,7 @@ def process_file((inputfile, output_dir, folder, xmlfile, args)):
                     humanitarian_sectors_dac_3_digit = ['720', '730', '740']
 
                     # ensure we are dealing with an activity
-                    if element.tag != 'iati-activity':
+                    if activity.tag != 'iati-activity':
                         return False
 
                     is_humanitarian_by_attrib = 1 if (version in ['2.02']) and ('humanitarian' in activity.attrib) and (activity.attrib['humanitarian'] in ['1', 'true']) else 0
@@ -84,7 +84,7 @@ def process_file((inputfile, output_dir, folder, xmlfile, args)):
 
 
                 version = root.attrib.get('version', '1.01')
-                for [element for el in root if is_humanitarian_activity(el, version)]:
+                for element in [el for el in root if is_humanitarian_activity(el, version)]:
                     element_stats = ElementStats()
                     element_stats.element = element
                     element_stats.strict = args.strict
