@@ -13,7 +13,7 @@ class ActivityFileStats(object):
     pass
 
 class ActivityStats(stats.dashboard.ActivityStats):
-    enabled_stats = ['most_recent_transaction_date', 'transaction_months_with_year']
+    enabled_stats = ['most_recent_transaction_date', 'transaction_dates', 'transaction_months_with_year']
 
 class OrganisationFileStats(object):
     pass
