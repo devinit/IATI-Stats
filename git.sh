@@ -53,7 +53,7 @@ cd data || exit $?
 # Get the latest commit hash
 current_hash=`git rev-parse HEAD`
 # Get all commit hashes
-commits=`git log --format=format:%H --since="4 months ago"`
+commits=`git log --format=format:%H --since="1 year ago"`
 cd .. || exit $?
 
 # Loop over commits and run stats code
@@ -79,7 +79,7 @@ for commit in $commits; do
         # (and also this on the next line: --new)
 
         # Run the stats commands and save output to log files
-        python calculate_stats.py $@ --today "$commit_date" --stats-module stats.timeliness_requirements loop --folder ocha_fts > $GITOUT_DIR/logs/${commit}_loop.log || exit 1
+        python calculate_stats.py $@ --today "$commit_date" --stats-module stats.timeliness_requirements loop > $GITOUT_DIR/logs/${commit}_loop.log || exit 1
         python calculate_stats.py $@ --today "$commit_date" aggregate > $GITOUT_DIR/logs/${commit}_aggregate.log || exit 1
         if [ $commit = $current_hash ]; then
 		python calculate_stats.py $@ --today "$commit_date" invert > $GITOUT_DIR/logs/${commit}_invert.log
