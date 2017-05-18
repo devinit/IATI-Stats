@@ -70,6 +70,13 @@ for commit in $commits; do
         git checkout $commit
         git clean -df
 
+        # skip this commit if there is no data since the later scripts fail if this is the case
+        directory_len=`ls -la | wc -l`
+        if [ $directory_len -lt 6 ]
+        then
+            continue
+        fi
+
         commit_date=`git log --format="format:%ai" | head -n 1`
         cd .. || exit $?
 
