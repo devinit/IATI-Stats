@@ -84,7 +84,8 @@ def process_file((inputfile, output_dir, folder, xmlfile, args)):
 
 
                 version = root.attrib.get('version', '1.01')
-                for element in [el for el in root if is_humanitarian_activity(el, version)]:
+                hum_activities = [el for el in root if is_humanitarian_activity(el, version)]
+                for element in hum_activities:
                     element_stats = ElementStats()
                     element_stats.element = element
                     element_stats.strict = args.strict
