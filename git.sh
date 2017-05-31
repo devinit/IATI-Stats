@@ -53,7 +53,7 @@ cd data || exit $?
 # Get the latest commit hash
 current_hash=`git rev-parse HEAD`
 # Get all commit hashes
-commits=`git log --format=format:%H --since="1 year ago"`
+commits=`git log --format=format:%H --since="380 days ago"`
 cd .. || exit $?
 
 # Loop over commits and run stats code
