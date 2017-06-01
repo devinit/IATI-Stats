@@ -70,13 +70,17 @@ def process_file((inputfile, output_dir, folder, xmlfile, args)):
                     humanitarian_sectors_dac_5_digit = ['72010', '72040', '72050', '73010', '74010']
                     humanitarian_sectors_dac_3_digit = ['720', '730', '740']
 
+                    # Set the correct vocabulary code for the version that this activity is defined at
+                    vocab_code_dac_5_digit = "DAC" if version in ["1.01", "1.02", "1.03", "1.04", "1.05"] else "1"
+                    vocab_code_dac_3_digit = "DAC-3" if version in ["1.01", "1.02", "1.03", "1.04", "1.05"] else "2"
+
                     # ensure we are dealing with an activity
                     if activity.tag != 'iati-activity':
                         return False
 
                     is_humanitarian_by_attrib = 1 if (version in ['2.02']) and ('humanitarian' in activity.attrib) and (activity.attrib['humanitarian'] in ['1', 'true']) else 0
-                    is_humanitarian_by_sector_5_digit = 1 if set(activity.xpath('sector[@vocabulary="1" or not(@vocabulary)]/@code')).intersection(humanitarian_sectors_dac_5_digit) else 0
-                    is_humanitarian_by_sector_3_digit = 1 if set(activity.xpath('sector[@vocabulary="2"]/@code')).intersection(humanitarian_sectors_dac_3_digit) else 0
+                    is_humanitarian_by_sector_5_digit = 1 if set(activity.xpath('sector[@vocabulary="{0}" or not(@vocabulary)]/@code'.format(vocab_code_dac_5_digit))).intersection(humanitarian_sectors_dac_5_digit) else 0
+                    is_humanitarian_by_sector_3_digit = 1 if set(activity.xpath('sector[@vocabulary="{0}"]/@code'.format(vocab_code_dac_3_digit))).intersection(humanitarian_sectors_dac_3_digit) else 0
                     is_humanitarian_by_sector = is_humanitarian_by_sector_5_digit or is_humanitarian_by_sector_3_digit
                     is_humanitarian = is_humanitarian_by_attrib or is_humanitarian_by_sector
 
@@ -84,6 +88,7 @@ def process_file((inputfile, output_dir, folder, xmlfile, args)):
 
 
                 version = root.attrib.get('version', '1.01')
+
                 hum_activities = [el for el in root if is_humanitarian_activity(el, version)]
                 for element in hum_activities:
                     element_stats = ElementStats()
@@ -148,4 +153,3 @@ def loop(args):
         pool.map(process_file, files)
     else:
         map(process_file, files)
-
