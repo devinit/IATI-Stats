@@ -78,11 +78,32 @@ def process_file((inputfile, output_dir, folder, xmlfile, args)):
                     if activity.tag != 'iati-activity':
                         return False
 
-                    is_humanitarian_by_attrib = 1 if (version in ['2.02']) and ('humanitarian' in activity.attrib) and (activity.attrib['humanitarian'] in ['1', 'true']) else 0
-                    is_humanitarian_by_sector_5_digit = 1 if set(activity.xpath('sector[@vocabulary="{0}" or not(@vocabulary)]/@code'.format(vocab_code_dac_5_digit))).intersection(humanitarian_sectors_dac_5_digit) else 0
-                    is_humanitarian_by_sector_3_digit = 1 if set(activity.xpath('sector[@vocabulary="{0}"]/@code'.format(vocab_code_dac_3_digit))).intersection(humanitarian_sectors_dac_3_digit) else 0
-                    is_humanitarian_by_sector = is_humanitarian_by_sector_5_digit or is_humanitarian_by_sector_3_digit
-                    is_humanitarian = is_humanitarian_by_attrib or is_humanitarian_by_sector
+                    # The below logic is replicated (with adapatations due to variable scope) from IATI-Stats code: ActivityStats.humanitarian()
+                    # https://github.com/IATI/IATI-Stats/blob/9c3b865f6184418f854667d3bafc0be4ae835890/stats/dashboard.py#L1188-L1209
+                    
+                    # logic around use of the @humanitarian attribute
+                    is_humanitarian_by_attrib_activity = 1 if ('humanitarian' in activity.attrib) and (activity.attrib['humanitarian'] in ['1', 'true']) else 0
+                    is_not_humanitarian_by_attrib_activity = 1 if ('humanitarian' in activity.attrib) and (activity.attrib['humanitarian'] in ['0', 'false']) else 0
+                    is_humanitarian_by_attrib_transaction = 1 if set(activity.xpath('transaction/@humanitarian')).intersection(['1', 'true']) else 0
+                    is_not_humanitarian_by_attrib_transaction = 1 if not is_humanitarian_by_attrib_transaction and set(activity.xpath('transaction/@humanitarian')).intersection(['0', 'false']) else 0
+                    is_humanitarian_by_attrib = (version in ['2.02']) and (is_humanitarian_by_attrib_activity or (is_humanitarian_by_attrib_transaction and not is_not_humanitarian_by_attrib_activity))
+
+                    # logic around DAC sector codes deemed to be humanitarian
+                    is_humanitarian_by_sector_5_digit_activity = 1 if set(activity.xpath('sector[@vocabulary="{0}" or not(@vocabulary)]/@code'.format(vocab_code_dac_5_digit))).intersection(humanitarian_sectors_dac_5_digit) else 0
+                    is_humanitarian_by_sector_5_digit_transaction = 1 if set(activity.xpath('transaction[not(@humanitarian="0" or @humanitarian="false")]/sector[@vocabulary="{0}" or not(@vocabulary)]/@code'.format(vocab_code_dac_3_digit))).intersection(humanitarian_sectors_dac_5_digit) else 0
+                    is_humanitarian_by_sector_3_digit_activity = 1 if set(activity.xpath('sector[@vocabulary="{0}"]/@code'.format(vocab_code_dac_3_digit))).intersection(humanitarian_sectors_dac_3_digit) else 0
+                    is_humanitarian_by_sector_3_digit_transaction = 1 if set(activity.xpath('transaction[not(@humanitarian="0" or @humanitarian="false")]/sector[@vocabulary="{0}"]/@code'.format(vocab_code_dac_3_digit))).intersection(humanitarian_sectors_dac_3_digit) else 0
+
+                    # helper variables to help make logic easier to read
+                    is_humanitarian_by_sector_activity = is_humanitarian_by_sector_5_digit_activity or is_humanitarian_by_sector_3_digit_activity
+                    is_humanitarian_by_sector_transaction = is_humanitarian_by_sector_5_digit_transaction or is_humanitarian_by_sector_3_digit_transaction
+                    is_humanitarian_by_sector = is_humanitarian_by_sector_activity or (is_humanitarian_by_sector_transaction and (version in ['2.02']))
+
+                    # combine the various ways in which an activity may be humanitarian
+                    is_humanitarian = 1 if (is_humanitarian_by_attrib or is_humanitarian_by_sector) else 0
+                    # deal with some edge cases that have veto
+                    if is_not_humanitarian_by_attrib_activity:
+                        is_humanitarian = 0
 
                     return bool(is_humanitarian)
 
