@@ -74,6 +74,9 @@ def process_file((inputfile, output_dir, folder, xmlfile, args)):
                     vocab_code_dac_5_digit = "DAC" if version in ["1.01", "1.02", "1.03", "1.04", "1.05"] else "1"
                     vocab_code_dac_3_digit = "DAC-3" if version in ["1.01", "1.02", "1.03", "1.04", "1.05"] else "2"
 
+                    # use the same algorithm as _major_version() in dashboard.py
+                    major_version = '2' if version and version.startswith('2.') else '1'
+
                     # ensure we are dealing with an activity
                     if activity.tag != 'iati-activity':
                         return False
@@ -98,7 +101,7 @@ def process_file((inputfile, output_dir, folder, xmlfile, args)):
                     # helper variables to help make logic easier to read
                     is_humanitarian_by_sector_activity = is_humanitarian_by_sector_5_digit_activity or is_humanitarian_by_sector_3_digit_activity
                     is_humanitarian_by_sector_transaction = is_humanitarian_by_sector_5_digit_transaction or is_humanitarian_by_sector_3_digit_transaction
-                    is_humanitarian_by_sector = is_humanitarian_by_sector_activity or (is_humanitarian_by_sector_transaction and (version in ['2.02']))
+                    is_humanitarian_by_sector = is_humanitarian_by_sector_activity or (is_humanitarian_by_sector_transaction and (major_version in ['2']))
 
                     # combine the various ways in which an activity may be humanitarian
                     is_humanitarian = 1 if (is_humanitarian_by_attrib or is_humanitarian_by_sector) else 0
