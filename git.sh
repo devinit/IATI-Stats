@@ -15,7 +15,7 @@ mkdir -p $GITOUT_DIR/gitaggregate
 mkdir -p $GITOUT_DIR/gitaggregate-dated
 
 
-# Build a JSON file of metadata for each CKAN publisher, and file that they have publishe. 
+# Build a JSON file of metadata for each CKAN publisher, and file that they have publishe.
 # This is based on the data from the CKAN API
 cd helpers
 python ckan.py
@@ -53,9 +53,8 @@ cd data || exit $?
 # Get the latest commit hash
 current_hash=`git rev-parse HEAD`
 # Get all commit hashes
-commits=`git log --format=format:%H`
+commits=`git log --format=format:%H --since="380 days ago"`
 cd .. || exit $?
-
 
 # Loop over commits and run stats code
 for commit in $commits; do
@@ -65,11 +64,20 @@ for commit in $commits; do
         echo Skipping $commit
     else
         echo "Running stats code for commit: $commit"
-        
+
         # Get the data to the specified commit
         cd data || exit $?
         git checkout $commit
         git clean -df
+
+        # skip this commit if there is no data since the later scripts fail if this is the case
+        directory_len=`ls -la | wc -l`
+        if [ $directory_len -lt 6 ]
+        then
+            echo "Skipping empty data directory on commit: $commit"
+            cd .. || exit $?
+            continue
+        fi
 
         commit_date=`git log --format="format:%ai" | head -n 1`
         cd .. || exit $?
@@ -80,7 +88,7 @@ for commit in $commits; do
         # (and also this on the next line: --new)
 
         # Run the stats commands and save output to log files
-        python calculate_stats.py $@ --today "$commit_date" loop > $GITOUT_DIR/logs/${commit}_loop.log || exit 1
+        python calculate_stats.py $@ --today "$commit_date" --stats-module stats.timeliness_requirements loop > $GITOUT_DIR/logs/${commit}_loop.log || exit 1
         python calculate_stats.py $@ --today "$commit_date" aggregate > $GITOUT_DIR/logs/${commit}_aggregate.log || exit 1
         if [ $commit = $current_hash ]; then
 		python calculate_stats.py $@ --today "$commit_date" invert > $GITOUT_DIR/logs/${commit}_invert.log
@@ -103,9 +111,6 @@ for commit in $commits; do
             mv commits/$current_hash current
             tar -czf current.tar.gz current
             cd .. || exit $?
-        fi
-        if [ "$ALL_COMMITS" = "" ]; then
-            break
         fi
     fi
 done

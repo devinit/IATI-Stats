@@ -78,6 +78,7 @@ def process_file((inputfile, output_dir, folder, xmlfile, args)):
                     if activity.tag != 'iati-activity':
                         return False
 
+
                     # The below logic is replicated (with adapatations due to variable scope) from IATI-Stats code: ActivityStats.humanitarian()
                     # https://github.com/IATI/IATI-Stats/blob/9c3b865f6184418f854667d3bafc0be4ae835890/stats/dashboard.py#L1188-L1209
                     
@@ -109,7 +110,6 @@ def process_file((inputfile, output_dir, folder, xmlfile, args)):
 
 
                 version = root.attrib.get('version', '1.01')
-
                 hum_activities = [el for el in root if is_humanitarian_activity(el, version)]
                 for element in hum_activities:
                     element_stats = ElementStats()
