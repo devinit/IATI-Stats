@@ -80,7 +80,7 @@ def process_file((inputfile, output_dir, folder, xmlfile, args)):
 
                     # The below logic is replicated (with adapatations due to variable scope) from IATI-Stats code: ActivityStats.humanitarian()
                     # https://github.com/IATI/IATI-Stats/blob/9c3b865f6184418f854667d3bafc0be4ae835890/stats/dashboard.py#L1188-L1209
-                    
+
                     # logic around use of the @humanitarian attribute
                     is_humanitarian_by_attrib_activity = 1 if ('humanitarian' in activity.attrib) and (activity.attrib['humanitarian'] in ['1', 'true']) else 0
                     is_not_humanitarian_by_attrib_activity = 1 if ('humanitarian' in activity.attrib) and (activity.attrib['humanitarian'] in ['0', 'false']) else 0
@@ -90,7 +90,7 @@ def process_file((inputfile, output_dir, folder, xmlfile, args)):
 
                     # logic around DAC sector codes deemed to be humanitarian
                     is_humanitarian_by_sector_5_digit_activity = 1 if set(activity.xpath('sector[@vocabulary="{0}" or not(@vocabulary)]/@code'.format(vocab_code_dac_5_digit))).intersection(humanitarian_sectors_dac_5_digit) else 0
-                    is_humanitarian_by_sector_5_digit_transaction = 1 if set(activity.xpath('transaction[not(@humanitarian="0" or @humanitarian="false")]/sector[@vocabulary="{0}" or not(@vocabulary)]/@code'.format(vocab_code_dac_3_digit))).intersection(humanitarian_sectors_dac_5_digit) else 0
+                    is_humanitarian_by_sector_5_digit_transaction = 1 if set(activity.xpath('transaction[not(@humanitarian="0" or @humanitarian="false")]/sector[@vocabulary="{0}" or not(@vocabulary)]/@code'.format(vocab_code_dac_5_digit))).intersection(humanitarian_sectors_dac_5_digit) else 0
                     is_humanitarian_by_sector_3_digit_activity = 1 if set(activity.xpath('sector[@vocabulary="{0}"]/@code'.format(vocab_code_dac_3_digit))).intersection(humanitarian_sectors_dac_3_digit) else 0
                     is_humanitarian_by_sector_3_digit_transaction = 1 if set(activity.xpath('transaction[not(@humanitarian="0" or @humanitarian="false")]/sector[@vocabulary="{0}"]/@code'.format(vocab_code_dac_3_digit))).intersection(humanitarian_sectors_dac_3_digit) else 0
 
