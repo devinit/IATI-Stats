@@ -51,7 +51,7 @@ cp gitdate.json $GITOUT_DIR
 # Store current and all commit hashes as variables
 cd data || exit $?
 # Get the latest commit hash
-current_hash=`git rev-parse HEAD`
+current_hash='344f0198b9d9a5e4188ee0d32b20d00af38714e1'
 # Get all commit hashes
 commits='344f0198b9d9a5e4188ee0d32b20d00af38714e1'
 cd .. || exit $?
