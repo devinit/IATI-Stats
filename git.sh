@@ -80,33 +80,46 @@ for commit in $commits; do
         # (and also this on the next line: --new)
 
         # Run the stats commands and save output to log files
+        echo "starting loop"
         python calculate_stats.py $@ --today "$commit_date" loop > $GITOUT_DIR/logs/${commit}_loop.log || exit 1
+        echo "starting aggregate"
         python calculate_stats.py $@ --today "$commit_date" aggregate > $GITOUT_DIR/logs/${commit}_aggregate.log || exit 1
+        echo "starting invert"
         python calculate_stats.py $@ --today "$commit_date" invert > $GITOUT_DIR/logs/${commit}_invert.log
         #python statsrunner/hashcopy.py || exit 1
+        echo "moving folders"
         rm -r $GITOUT_DIR/commits/$commit
         mv out $GITOUT_DIR/commits/$commit || exit $?
 
+        echo "starting gitaggregate"
         python statsrunner/gitaggregate.py
+        echo "starting gitaggregate dated"
         python statsrunner/gitaggregate.py dated
+        echo "starting gitaggregate-publisher"
         python statsrunner/gitaggregate-publisher.py
+        echo "starting gitaggregate-publishe-dated"
         python statsrunner/gitaggregate-publisher.py dated
+        echo "finished stats gen"
         # If the commit is the latest commit then, move the resulting stats to the 'current' directory
+        echo "shuffling folders"
         cd $GITOUT_DIR || exit $?
         rm -r current
         # Since we're not currently creating symlinks, we can just do a plain move here
         mv commits/$current_hash current
         tar -czf current.tar.gz current
         cd .. || exit $?
+        echo "shuffled folders"
         if [ "$ALL_COMMITS" = "" ]; then
+            echo "breaking"
             break
         fi
     fi
 done
 
 cd $GITOUT_DIR || exit $?
+echo "taring"
 tar -czf gitaggregate.tar.gz gitaggregate
 tar -czf gitaggregate-dated.tar.gz gitaggregate-dated
 tar -czf gitaggregate-publisher.tar.gz gitaggregate-publisher
 tar -czf gitaggregate-publisher-dated.tar.gz gitaggregate-publisher-dated
-
+echo "tared"
