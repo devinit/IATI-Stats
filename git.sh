@@ -82,9 +82,7 @@ for commit in $commits; do
         # Run the stats commands and save output to log files
         python calculate_stats.py $@ --today "$commit_date" loop > $GITOUT_DIR/logs/${commit}_loop.log || exit 1
         python calculate_stats.py $@ --today "$commit_date" aggregate > $GITOUT_DIR/logs/${commit}_aggregate.log || exit 1
-        if [ $commit = $current_hash ]; then
-		python calculate_stats.py $@ --today "$commit_date" invert > $GITOUT_DIR/logs/${commit}_invert.log
-        fi
+        python calculate_stats.py $@ --today "$commit_date" invert > $GITOUT_DIR/logs/${commit}_invert.log
         #python statsrunner/hashcopy.py || exit 1
         rm -r $GITOUT_DIR/commits/$commit
         mv out $GITOUT_DIR/commits/$commit || exit $?
