@@ -92,16 +92,12 @@ for commit in $commits; do
         python statsrunner/gitaggregate-publisher.py
         python statsrunner/gitaggregate-publisher.py dated
         # If the commit is the latest commit then, move the resulting stats to the 'current' directory
-        if [ ! $commit = $current_hash ]; then
-            rm -r $GITOUT_DIR/commits/$commit
-        else
-            cd $GITOUT_DIR || exit $?
-            rm -r current
-            # Since we're not currently creating symlinks, we can just do a plain move here
-            mv commits/$current_hash current
-            tar -czf current.tar.gz current
-            cd .. || exit $?
-        fi
+        cd $GITOUT_DIR || exit $?
+        rm -r current
+        # Since we're not currently creating symlinks, we can just do a plain move here
+        mv commits/$current_hash current
+        tar -czf current.tar.gz current
+        cd .. || exit $?
         if [ "$ALL_COMMITS" = "" ]; then
             break
         fi
