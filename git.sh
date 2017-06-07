@@ -15,7 +15,7 @@ mkdir -p $GITOUT_DIR/gitaggregate
 mkdir -p $GITOUT_DIR/gitaggregate-dated
 
 
-# Build a JSON file of metadata for each CKAN publisher, and file that they have publishe. 
+# Build a JSON file of metadata for each CKAN publisher, and file that they have publishe.
 # This is based on the data from the CKAN API
 cd helpers
 python ckan.py
@@ -53,7 +53,7 @@ cd data || exit $?
 # Get the latest commit hash
 current_hash=`git rev-parse HEAD`
 # Get all commit hashes
-commits=`git log --format=format:%H`
+commits='344f0198b9d9a5e4188ee0d32b20d00af38714e1'
 cd .. || exit $?
 
 
@@ -65,7 +65,7 @@ for commit in $commits; do
         echo Skipping $commit
     else
         echo "Running stats code for commit: $commit"
-        
+
         # Get the data to the specified commit
         cd data || exit $?
         git checkout $commit
