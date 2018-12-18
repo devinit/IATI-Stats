@@ -111,7 +111,7 @@ def process_file((inputfile, output_dir, folder, xmlfile, args)):
                     is_not_humanitarian_by_attrib_activity = 1 if ('humanitarian' in activity.attrib) and (activity.attrib['humanitarian'] in ['0', 'false']) else 0
                     is_humanitarian_by_attrib_transaction = 1 if set(activity.xpath('transaction/@humanitarian')).intersection(['1', 'true']) else 0
                     is_not_humanitarian_by_attrib_transaction = 1 if not is_humanitarian_by_attrib_transaction and set(activity.xpath('transaction/@humanitarian')).intersection(['0', 'false']) else 0
-                    is_humanitarian_by_attrib = (version in ['2.02']) and (is_humanitarian_by_attrib_activity or (is_humanitarian_by_attrib_transaction and not is_not_humanitarian_by_attrib_activity))
+                    is_humanitarian_by_attrib = (version in ['2.02', '2.03']) and (is_humanitarian_by_attrib_activity or (is_humanitarian_by_attrib_transaction and not is_not_humanitarian_by_attrib_activity))
 
                     # logic around DAC sector codes deemed to be humanitarian
                     is_humanitarian_by_sector_5_digit_activity = 1 if set(activity.xpath('sector[@vocabulary="{0}" or not(@vocabulary)]/@code'.format(vocab_code_dac_5_digit))).intersection(humanitarian_sectors_dac_5_digit) else 0
