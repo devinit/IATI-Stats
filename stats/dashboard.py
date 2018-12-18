@@ -41,8 +41,13 @@ def add_years(d, years):
         return d + (date(d.year + years, 1, 1) - date(d.year, 1, 1))
 
 
-def all_and_not_empty(bool_iterable):
-    """ For a given list, check that all elements return true and that the list is not empty """
+def all_true_and_not_empty(bool_iterable):
+    """For a given list, check that all elements return true and that the list is not empty.
+
+    Args:
+        bool_iterable (iterable of bool): An iterable containing values that can be cast to a bool.
+
+    """
 
     # Ensure that the given list is indeed a simple list
     bool_list = list(bool_iterable)
@@ -358,13 +363,7 @@ class CommonSharedElements(object):
     @returns_numberdict
     @memoize
     def _major_version(self):
-        # TODO: Refactor to use _version
-        parent = self.element.getparent()
-        if parent is None:
-            print('No parent of iati-activity, is this a test? Assuming version 1.xx')
-            return '1'
-        version = self.element.getparent().attrib.get('version')
-        if version and version.startswith('2.'):
+        if self._version().startswith('2.'):
             return '2'
         else:
             return '1'
@@ -377,14 +376,14 @@ class CommonSharedElements(object):
         if parent is None:
             print('No parent of iati-activity, is this a test? Assuming version 1.01')
             return '1.01'
-        version = self.element.getparent().attrib.get('version')
+        version = parent.attrib.get('version')
         if version and version in allowed_versions:
             return version
         else:
             return '1.01'
 
     @returns_numberdict
-    def ruleset_passes(self):
+    def _ruleset_passes(self):
         out = {}
         for ruleset_name in ['standard']:
             ruleset = json.load(open('helpers/rulesets/{0}.json'.format(ruleset_name)), object_pairs_hook=OrderedDict)
@@ -1003,28 +1002,28 @@ class ActivityStats(CommonSharedElements):
             'description': is_text_in_element('description'),
             'activity-status': self.element.find('activity-status') is not None,
             'activity-date': self.element.find('activity-date') is not None,
-            'sector': self.element.find('sector') is not None or (self._major_version() != '1' and all_and_not_empty(
+            'sector': self.element.find('sector') is not None or (self._major_version() != '1' and all_true_and_not_empty(
                     (transaction.find('sector') is not None)
                         for transaction in self.element.findall('transaction')
                 )),
             'country_or_region': (
                 self.element.find('recipient-country') is not None
                 or self.element.find('recipient-region') is not None
-                or (self._major_version() != '1' and all_and_not_empty(
+                or (self._major_version() != '1' and all_true_and_not_empty(
                     (transaction.find('recipient-country') is not None or
                      transaction.find('recipient-region') is not None)
                         for transaction in self.element.findall('transaction')
                 ))),
             'transaction_commitment': self.element.xpath('transaction[transaction-type/@code="{}" or transaction-type/@code="11"]'.format(self._commitment_code())),
             'transaction_spend': self.element.xpath('transaction[transaction-type/@code="{}" or transaction-type/@code="{}"]'.format(self._disbursement_code(), self._expenditure_code())),
-            'transaction_currency': all_and_not_empty(x.xpath('value/@value-date') and x.xpath('../@default-currency|./value/@currency') for x in self.element.findall('transaction')),
-            'transaction_traceability': all_and_not_empty(x.xpath('provider-org/@provider-activity-id') for x in self.element.xpath('transaction[transaction-type/@code="{}"]'.format(self._incoming_funds_code())))
+            'transaction_currency': all_true_and_not_empty(x.xpath('value/@value-date') and x.xpath('../@default-currency|./value/@currency') for x in self.element.findall('transaction')),
+            'transaction_traceability': all_true_and_not_empty(x.xpath('provider-org/@provider-activity-id') for x in self.element.xpath('transaction[transaction-type/@code="{}"]'.format(self._incoming_funds_code())))
                                         or self._is_donor_publisher(),
             'budget': self.element.findall('budget'),
             'contact-info': self.element.findall('contact-info/email'),
             'location': self.element.xpath('location/point/pos|location/name|location/description|location/location-administrative'),
             'location_point_pos': self.element.xpath('location/point/pos'),
-            'sector_dac': self.element.xpath('sector[@vocabulary="{}" or @vocabulary="{}" or not(@vocabulary)]'.format(self._dac_5_code(), self._dac_3_code())),
+            'sector_dac': self._is_sector_dac(),
             'capital-spend': self.element.xpath('capital-spend/@percentage'),
             'document-link': self.element.findall('document-link'),
             'activity-website': self.element.xpath('activity-website' if self._major_version() == '1' else 'document-link[category/@code="A12"]'),
@@ -1032,11 +1031,23 @@ class ActivityStats(CommonSharedElements):
             'conditions_attached': self.element.xpath('conditions/@attached'),
             'result_indicator': self.element.xpath('result/indicator'),
             'aid_type': (
-                all_and_not_empty(self.element.xpath('default-aid-type/@code'))
-                or all_and_not_empty([transaction.xpath('aid-type/@code') for transaction in self.element.xpath('transaction')])
+                all_true_and_not_empty(self.element.xpath('default-aid-type/@code'))
+                or all_true_and_not_empty([transaction.xpath('aid-type/@code') for transaction in self.element.xpath('transaction')])
                 )
-            # Alternative: all(map(all_and_not_empty, [transaction.xpath('aid-type/@code') for transaction in self.element.xpath('transaction')]))
+            # Alternative: all(map(all_true_and_not_empty, [transaction.xpath('aid-type/@code') for transaction in self.element.xpath('transaction')]))
         }
+
+    def _is_sector_dac(self):
+        """Determine whether an activity has comprehensive DAC sectors against the validation methodology."""
+        sector_dac_activity_level = self.element.xpath('sector[@vocabulary="{}" or @vocabulary="{}" or not(@vocabulary)]'.format(self._dac_5_code(), self._dac_3_code()))
+
+        if self._major_version() != '1':
+            sector_dac_transaction_level = [transaction.xpath('sector[@vocabulary="{}" or @vocabulary="{}" or not(@vocabulary)]'.format(self._dac_5_code(), self._dac_3_code())) for transaction in self.element.xpath('transaction')]
+            all_transactions_have_dac_sector_codes = all_true_and_not_empty(sector_dac_transaction_level)
+        else:
+            all_transactions_have_dac_sector_codes = False
+
+        return sector_dac_activity_level or all_transactions_have_dac_sector_codes
 
     def _comprehensiveness_with_validation_bools(self):
 
@@ -1074,7 +1085,6 @@ class ActivityStats(CommonSharedElements):
                     else:
                         return len(elements) == 1 or sum(decimal_or_zero(x.attrib.get('percentage')) for x in elements) == 100
 
-            #import pdb;pdb.set_trace()
             bools.update({
                 'version': bools['version'] and self.element.getparent().attrib['version'] in CODELISTS[self._major_version()]['Version'],
                 'iati-identifier': (
@@ -1086,11 +1096,11 @@ class ActivityStats(CommonSharedElements):
                         if self._major_version() is not '1' else True
                     )),
                 'participating-org': bools['participating-org'] and self._funding_code() in self.element.xpath('participating-org/@role'),
-                'activity-status': bools['activity-status'] and all_and_not_empty(x in CODELISTS[self._major_version()]['ActivityStatus'] for x in self.element.xpath('activity-status/@code')),
+                'activity-status': bools['activity-status'] and all_true_and_not_empty(x in CODELISTS[self._major_version()]['ActivityStatus'] for x in self.element.xpath('activity-status/@code')),
                 'activity-date': (
                     bools['activity-date'] and
                     self.element.xpath('activity-date[@type="{}" or @type="{}"]'.format(self._planned_start_code(), self._actual_start_code())) and
-                    all_and_not_empty(map(valid_date, self.element.findall('activity-date')))
+                    all_true_and_not_empty(map(valid_date, self.element.findall('activity-date')))
                     ),
                 'sector': (
                     bools['sector'] and
@@ -1101,12 +1111,12 @@ class ActivityStats(CommonSharedElements):
                 'transaction_commitment': (
                     bools['transaction_commitment'] and
                     all([ valid_value(x.find('value')) for x in bools['transaction_commitment'] ]) and
-                    all_and_not_empty(any(valid_date(x) for x in t.xpath('transaction-date|value')) for t in bools['transaction_commitment'])
+                    all_true_and_not_empty(any(valid_date(x) for x in t.xpath('transaction-date|value')) for t in bools['transaction_commitment'])
                     ),
                 'transaction_spend': (
                     bools['transaction_spend'] and
                     all([ valid_value(x.find('value')) for x in bools['transaction_spend'] ]) and
-                    all_and_not_empty(any(valid_date(x) for x in t.xpath('transaction-date|value')) for t in bools['transaction_spend'])
+                    all_true_and_not_empty(any(valid_date(x) for x in t.xpath('transaction-date|value')) for t in bools['transaction_spend'])
                     ),
                 'transaction_currency': all(
                     all(map(valid_date, t.findall('value'))) and
@@ -1120,22 +1130,22 @@ class ActivityStats(CommonSharedElements):
                         valid_date(budget.find('value')) and
                         valid_value(budget.find('value'))
                         for budget in bools['budget'])),
-                'location_point_pos': all_and_not_empty(
+                'location_point_pos': all_true_and_not_empty(
                     valid_coords(x.text) for x in bools['location_point_pos']),
                 'sector_dac': (
                     bools['sector_dac'] and
                     all(x.attrib.get('code') in CODELISTS[self._major_version()]['Sector'] for x in self.element.xpath('sector[@vocabulary="{}" or not(@vocabulary)]'.format(self._dac_5_code()))) and
                     all(x.attrib.get('code') in CODELISTS[self._major_version()]['SectorCategory'] for x in self.element.xpath('sector[@vocabulary="{}"]'.format(self._dac_3_code())))
                     ),
-                'document-link': all_and_not_empty(
+                'document-link': all_true_and_not_empty(
                     valid_url(x) and x.find('category') is not None and x.find('category').attrib.get('code') in CODELISTS[self._major_version()]['DocumentCategory'] for x in bools['document-link']),
-                'activity-website': all_and_not_empty(map(valid_url, bools['activity-website'])),
+                'activity-website': all_true_and_not_empty(map(valid_url, bools['activity-website'])),
                 'aid_type': (
                     bools['aid_type'] and
                     # i) Value in default-aid-type/@code is found in the codelist
-                    (all_and_not_empty([code in CODELISTS[self._major_version()]['AidType'] for code in self.element.xpath('default-aid-type/@code')])
+                    (all_true_and_not_empty([code in CODELISTS[self._major_version()]['AidType'] for code in self.element.xpath('default-aid-type/@code')])
                      # Or ii) Each transaction has a aid-type/@code which is found in the codelist
-                     or all_and_not_empty(
+                     or all_true_and_not_empty(
                         [set(x).intersection(CODELISTS[self._major_version()]['AidType'])
                         for x in [transaction.xpath('aid-type/@code') for transaction in self.element.xpath('transaction')]]
                         )
@@ -1197,7 +1207,7 @@ class ActivityStats(CommonSharedElements):
         is_not_humanitarian_by_attrib_activity = 1 if ('humanitarian' in self.element.attrib) and (self.element.attrib['humanitarian'] in ['0', 'false']) else 0
         is_humanitarian_by_attrib_transaction = 1 if set(self.element.xpath('transaction/@humanitarian')).intersection(['1', 'true']) else 0
         is_not_humanitarian_by_attrib_transaction = 1 if not is_humanitarian_by_attrib_transaction and set(self.element.xpath('transaction/@humanitarian')).intersection(['0', 'false']) else 0
-        is_humanitarian_by_attrib = (self._version() in ['2.02']) and (is_humanitarian_by_attrib_activity or (is_humanitarian_by_attrib_transaction and not is_not_humanitarian_by_attrib_activity))
+        is_humanitarian_by_attrib = (self._version() in ['2.02', '2.03']) and (is_humanitarian_by_attrib_activity or (is_humanitarian_by_attrib_transaction and not is_not_humanitarian_by_attrib_activity))
 
         # logic around DAC sector codes deemed to be humanitarian
         is_humanitarian_by_sector_5_digit_activity = 1 if set(self.element.xpath('sector[@vocabulary="{0}" or not(@vocabulary)]/@code'.format(self._dac_5_code()))).intersection(humanitarian_sectors_dac_5_digit) else 0
@@ -1218,8 +1228,8 @@ class ActivityStats(CommonSharedElements):
         return {
             'is_humanitarian': is_humanitarian,
             'is_humanitarian_by_attrib': is_humanitarian_by_attrib,
-            'contains_humanitarian_scope': 1 if (self._version() in ['2.02']) and self.element.xpath('humanitarian-scope/@type') and self.element.xpath('humanitarian-scope/@code') else 0,
-            'uses_humanitarian_clusters_vocab': 1 if (self._version() in ['2.02']) and self.element.xpath('sector/@vocabulary="10"') else 0
+            'contains_humanitarian_scope': 1 if (self._version() in ['2.02', '2.03']) and self.element.xpath('humanitarian-scope/@type') and self.element.xpath('humanitarian-scope/@code') else 0,
+            'uses_humanitarian_clusters_vocab': 1 if (self._version() in ['2.02', '2.03']) and self.element.xpath('sector/@vocabulary="10"') else 0
         }
 
     def _transaction_type_code(self, transaction):
