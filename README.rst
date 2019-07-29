@@ -55,8 +55,8 @@ Getting started
 .. code-block:: bash
 
     # Get the code
-    git clone https://github.com/IATI/IATI-Stats.git
-    cd IATI-Stats
+    git clone https://github.com/devinit/gbm-IATI-Stats.git
+    cd gbm-IATI-Stats
 
     # Put some IATI data in the 'data' directory
     # (see previous section)
